@@ -148,9 +148,31 @@ class ForwardKinematics(object):
 
         ### Add your code here ###
 
+        for it in range(len(joints)):
 
+            # translation part respect of the previous frame
+            D = tf.transformations.translation_matrix(joints[it].origin.xyz)
 
-            all_transforms.transforms.append(convert_to_message(T, link_names[i], 'world_link'))
+            # Obtain current joint value
+            try:
+                index = joint_values.name.index(joints[it].name)
+                q = joint_values.position[index]
+
+            except ValueError as e:
+                q = 0.0
+                rospy.logdebug("%s", e)
+
+            if joints[it].type == 'revolute':
+                # Obtain the rotation axis of the frame
+                axis = joints[it].axis
+                # Rotate q radians  (or translate q meters) about a single axis
+                R = tf.transformations.quaternion_matrix(tf.transformations.quaternion_about_axis(q, axis))
+            else :  # fixed joint
+                R = tf.transformations.identity_matrix()
+
+            T = tf.transformations.concatenate_matrices(T,D,R)
+
+            all_transforms.transforms.append(convert_to_message(T, link_names[it], 'world_link'))
 
         ### End your code here ###
 
